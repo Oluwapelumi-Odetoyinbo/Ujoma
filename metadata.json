@@ -1,5 +1,7 @@
 {
   "name": "Umoja",
   "description": "An emotionally immersive cinematic gateway into culture and unity, exploring the heartbeat of the African continent through satellite narratives and generative vision.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

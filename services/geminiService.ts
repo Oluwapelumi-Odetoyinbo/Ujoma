@@ -3,13 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CountryInfo } from "../types";
 
 export const getCountryData = async (countryName: string): Promise<CountryInfo> => {
-  // Create a new instance right before call as per guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  // Use googleMaps tool to ground the response in real-world geography
   const response = await ai.models.generateContent({
-    // Use gemini-3-pro-preview for advanced reasoning and creative output
     model: 'gemini-3-pro-preview',
-    contents: `Tell a soul-stirring story about ${countryName}. Include its capital, central coordinates [lon, lat], 3 profound facts about its heritage, a short evocative description, a visual description for a cinematic zoom, and a short 'cultural essence' phrase.`,
+    contents: `Analyze the location of ${countryName} for a satellite mission. Provide precise geographical data including capital, central coordinates [lon, lat], and heritage facts. Describe its landscape as seen from a satellite descending from orbit.`,
     config: {
+      tools: [{ googleMaps: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -42,14 +43,13 @@ export const generateCinematicZoom = async (
   landscapeDescription: string,
   onUpdate: (msg: string) => void
 ): Promise<string> => {
-  // Create a new instance right before call as per guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  onUpdate("Aligning with the heartbeat of " + country + "...");
+  onUpdate("Establishing Orbital Lock...");
   
-  const prompt = `An ultra-high-definition cinematic journey into ${country}. Starting from a distant golden sunset view of the planet, smoothly descending through ethereal clouds to reveal the stunning, vibrant ${landscapeDescription}. Emotional, cinematic lighting, 8k, photorealistic, awe-inspiring movement. No text.`;
+  // Refined prompt referencing Earth Studio quality
+  const prompt = `A professional Google Earth Studio animation. A cinematic, smooth satellite zoom descending from the thermosphere down to the landscape of ${country}. Focus on ${landscapeDescription}. Clear atmospheric scattering, realistic lighting, 8k resolution, high-altitude photography, smooth camera ease-in. No text overlays.`;
 
-  // Upgrade to veo-3.1-generate-preview for high-quality requirements (8k/photorealistic)
   let operation = await ai.models.generateVideos({
     model: 'veo-3.1-generate-preview',
     prompt: prompt,
@@ -60,19 +60,17 @@ export const generateCinematicZoom = async (
     }
   });
 
-  onUpdate("Capturing the essence...");
+  onUpdate("Transmitting Data Stream...");
 
   while (!operation.done) {
-    // 10 second delay for operations as per guideline examples
     await new Promise(resolve => setTimeout(resolve, 10000));
     operation = await ai.operations.getVideosOperation({ operation: operation });
-    onUpdate(`Synthesizing the landscape...`);
+    onUpdate(`Synchronizing Satellite Feed...`);
   }
 
   const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-  if (!downloadLink) throw new Error("The vision was lost in transit.");
+  if (!downloadLink) throw new Error("Connection lost.");
 
-  // Fetch MP4 bytes and append the API key
   const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
   const blob = await response.blob();
   return URL.createObjectURL(blob);

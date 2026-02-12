@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Globe from './components/Globe';
 import CountrySidebar from './components/CountrySidebar';
+import ThreeBackground from './components/ThreeBackground';
 import { CountryInfo, VideoState } from './types';
 import { getCountryData, generateCinematicZoom } from './services/geminiService';
 
@@ -11,7 +12,6 @@ declare global {
     openSelectKey: () => Promise<void>;
   }
   interface Window {
-    // Making aistudio optional to match the ambient declaration in the environment
     aistudio?: AIStudio;
   }
 }
@@ -35,23 +35,21 @@ const App: React.FC = () => {
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (phase !== 'intro') return;
     const { clientX, clientY } = e;
     const { innerWidth, innerHeight } = window;
-    // Normalize to -1 to 1 range
     const x = (clientX / innerWidth - 0.5) * 2;
     const y = (clientY / innerHeight - 0.5) * 2;
     setMousePos({ x, y });
-  }, [phase]);
+  }, []);
 
   const startJourney = useCallback(async () => {
     setPhase('revealing');
     
-    // After text zoom-through completes (approx 2.5s based on CSS), move to narrative zoom
+    // Zoom through UMOJA text takes 2.5s.
+    // We wait 2.5s to start the Narrative zoom onto the first country.
     setTimeout(async () => {
       setPhase('narrative');
       setIsLoading(true);
-      // Hardcoded destination for the intro journey: Kenya
       try {
         const data = await getCountryData('Kenya');
         setCountryInfo(data);
@@ -109,16 +107,18 @@ const App: React.FC = () => {
   return (
     <div 
       onMouseMove={handleMouseMove}
-      className="relative w-screen h-screen bg-[#020205] text-white selection:bg-amber-500/30"
+      className="relative w-screen h-screen bg-[#020205] text-white selection:bg-amber-500/30 overflow-hidden"
     >
+      {/* Cinematic 3D Background */}
+      <ThreeBackground mousePos={mousePos} phase={phase} />
       
-      {/* Globe Layer - Visible during revealing, narrative, and explore */}
+      {/* New Realistic 3D Globe Layer */}
       {(phase !== 'intro') && (
-        <div className={`absolute inset-0 ${phase === 'revealing' ? 'reveal-earth' : ''}`}>
+        <div className={`absolute inset-0 z-10 ${phase === 'revealing' ? 'reveal-earth' : ''}`}>
           <Globe 
             onCountrySelect={handleCountrySelect} 
             targetCoordinates={countryInfo?.coordinates}
-            isCinematicMode={phase === 'narrative' || phase === 'revealing'}
+            isCinematicMode={phase === 'narrative'}
             isRevealing={phase === 'revealing'}
           />
         </div>
@@ -126,7 +126,7 @@ const App: React.FC = () => {
 
       {/* Intro Overlay */}
       {phase === 'intro' && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 text-center bg-[#020205] overflow-hidden">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 text-center bg-transparent">
           <div className="max-w-3xl space-y-8 relative">
             <h1 
               style={{ 
@@ -162,15 +162,6 @@ const App: React.FC = () => {
             >
               BEGIN THE RETURN
             </button>
-
-            {/* Subtle background glow that follows mouse slightly */}
-            <div 
-              style={{ 
-                transform: `translate(${mousePos.x * -30}px, ${mousePos.y * -30}px)`,
-                transition: 'transform 1.2s cubic-bezier(0.2, 0, 0.2, 1)' 
-              }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10"
-            />
           </div>
           <div className="absolute bottom-12 text-[10px] text-white/20 uppercase tracking-[0.2em]">
             A Cinematic Gateway into Global Heritage
@@ -227,7 +218,7 @@ const App: React.FC = () => {
 
       {/* Floating Search (Only in Explore) */}
       {phase === 'explore' && (
-        <div className="absolute top-12 left-12 z-10 w-full max-w-xs animate-in slide-in-from-left duration-500">
+        <div className="absolute top-12 left-12 z-20 w-full max-w-xs animate-in slide-in-from-left duration-500">
            <form 
              onSubmit={(e) => {
                e.preventDefault();
@@ -257,7 +248,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="absolute bottom-8 right-8 text-white/10 text-[9px] tracking-widest uppercase pointer-events-none">
+      <div className="absolute bottom-8 right-8 text-white/10 text-[9px] tracking-widest uppercase pointer-events-none z-30">
         Umoja Project // Orbital Vision V1.0
       </div>
     </div>
